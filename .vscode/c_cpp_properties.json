@@ -6,6 +6,7 @@
             "name": "Linux",
             "compilerPath": "/usr/bin/g++",
             "compilerArgs": [
+                "-std=c++17",
                 "-I",
                 "${workspaceFolder}/include"
             ],

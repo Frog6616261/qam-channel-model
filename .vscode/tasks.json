@@ -2,17 +2,12 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build project",
+            "label": "build",
             "type": "shell",
-            "command": "/usr/bin/g++",
+            "command": "/usr/bin/bash",
             "args": [
-                "-g",
-                "-I",
-                "${workspaceFolder}/include",
-                "${workspaceFolder}/src/main.cpp",
-                "${workspaceFolder}/src/awgn.cpp",
-                "-o",
-                "${workspaceFolder}/bin/main"
+                "-lc",
+                "mkdir -p \"${workspaceFolder}/bin\" && /usr/bin/g++ -std=c++17 -g3 -O0 -Wall -Wextra -I \"${workspaceFolder}/include\" \"${workspaceFolder}/src/main.cpp\" \"${workspaceFolder}/src/awgn.cpp\" \"${workspaceFolder}/src/qammod.cpp\" \"${workspaceFolder}/src/qamdemod.cpp\" -o \"${workspaceFolder}/bin/main\""
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
