@@ -133,23 +133,23 @@ std::vector<double> Demodulator::demodulate_soft(const std::vector<std::complex<
 double Demodulator::solve_llr_by_sum_exp(uint num_bit_in_symb
     , const std::complex<double>& rx_symb, double noise_disp)
 {
-    double exp_sum_1 = 0.0;
-    double exp_sum_0 = 0.0;
-    double noise_disp_with_2 = 2.0 * std::pow(noise_disp, 2);
-    uint numb_bits_for_symb = log2PowerOfTwo(m_M);
-
-
-    for (uint num_symb_in_arr = 0; num_symb_in_arr < numb_bits_for_symb; ++num_symb_in_arr){
-
-        exp_sum_1 += std::pow(std::norm(
-            m_qam_symbols[m_num_symb_by_bit1_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb), 2);
-    
-        exp_sum_0 += std::pow(std::norm(
-            m_qam_symbols[m_num_symb_by_bit0_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb), 2);
+    if (num_bit_in_symb >= log2PowerOfTwo(m_M)) {
+        throw std::out_of_range("Bit number is out of range");
     }
 
-    exp_sum_1 = (exp_sum_1 / noise_disp_with_2) * (-1.0);
-    exp_sum_0 = (exp_sum_0 / noise_disp_with_2) * (-1.0);
+    double exp_sum_1 = 0.0;
+    double exp_sum_0 = 0.0;
+    uint numb_symbs_for_bit = m_M >> 1;
+
+    for (uint num_symb_in_arr = 0; num_symb_in_arr < numb_symbs_for_bit; ++num_symb_in_arr){
+        const double norm_bit1 = std::norm(
+            m_qam_symbols[m_num_symb_by_bit1_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb);
+        const double norm_bit0 = std::norm(
+            m_qam_symbols[m_num_symb_by_bit0_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb);
+
+        exp_sum_1 += std::exp(-norm_bit1 / (2.0 * noise_disp));
+        exp_sum_0 += std::exp(-norm_bit0 / (2.0 * noise_disp));
+    }
 
     return std::log(exp_sum_1) - std::log(exp_sum_0);
 }
@@ -161,34 +161,36 @@ double Demodulator::solve_llr_by_max_log(uint num_bit_in_symb
     double min_norm_0 = std::numeric_limits<double>::max();
     double min_norm_1 = std::numeric_limits<double>::max();
 
-    uint numb_symbs_for_bit = log2PowerOfTwo(m_M);
+    uint numb_symbs_for_bit = m_M >> 1;
 
     double cur_norm_bit0 = 0;
     double cur_norm_bit1 = 0;
     for (uint num_symb_in_arr = 0; num_symb_in_arr < numb_symbs_for_bit; ++num_symb_in_arr){
 
-        cur_norm_bit0 = std::pow(std::norm(
-            m_qam_symbols[m_num_symb_by_bit0_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb), 2);
-        cur_norm_bit1 = std::pow(std::norm(
-            m_qam_symbols[m_num_symb_by_bit1_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb), 2);
+        cur_norm_bit0 = std::norm(
+            m_qam_symbols[m_num_symb_by_bit0_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb);
+        cur_norm_bit1 = std::norm(
+            m_qam_symbols[m_num_symb_by_bit1_in_pos[num_bit_in_symb][num_symb_in_arr]] - rx_symb);
 
         if (cur_norm_bit0 < min_norm_0) min_norm_0 = cur_norm_bit0;
         if (cur_norm_bit1 < min_norm_1) min_norm_1 = cur_norm_bit1;
     }
 
-    return (min_norm_0 - min_norm_0) / (2.0 * std::pow(noise_disp, 2));
+    return (min_norm_0 - min_norm_1) / (2.0 * noise_disp);
 }
 
 
 uint Demodulator::find_symb_by_min_norm(const std::complex<double>& rx_symb)
 {
-    std::vector<uint>::iterator it = std::min_element(m_int_symbols.begin(), m_int_symbols.end(),
+    std::vector<uint>::iterator it = std::min_element(m_num_qam_by_bits_symbols.begin(), m_num_qam_by_bits_symbols.end(),
     [this, &rx_symb](uint a, uint b) {
         return  std::norm(m_qam_symbols[a] - rx_symb) 
                 < std::norm(m_qam_symbols[b] - rx_symb);
     });
 
-    return m_int_symbols[*it];
+    std::vector<uint>::iterator bit_symb_it = std::find(m_num_qam_by_bits_symbols.begin(), m_num_qam_by_bits_symbols.end(), *it);
+
+    return *bit_symb_it;
 }
 
 
@@ -197,16 +199,21 @@ void Demodulator::init_num_bits_in_symb_arr()
     uint numb_bits_in_symb = log2PowerOfTwo(m_M);
 
     for (uint num_bit_in_symb = 0; num_bit_in_symb < numb_bits_in_symb; ++num_bit_in_symb){
+        uint cur_num_inbit0_arr = 0;
+        uint cur_num_inbit1_arr = 0;
+
         for (uint num_symb = 0; num_symb < m_M; ++num_symb){
 
-            uint cur_int_symb = m_int_symbols[num_symb];
+            uint cur_int_symb = m_num_qam_by_bits_symbols[num_symb];
             uint num_bit = numb_bits_in_symb - num_bit_in_symb - 1;
             bool cur_bit_val = (cur_int_symb >> num_bit) & 1;
 
             if (cur_bit_val){
-                m_num_symb_by_bit1_in_pos[num_bit_in_symb][num_symb >> 2] = num_symb;
+                m_num_symb_by_bit1_in_pos[num_bit_in_symb][cur_num_inbit1_arr] = num_symb;
+                cur_num_inbit1_arr++;
             } else {
-                m_num_symb_by_bit0_in_pos[num_bit_in_symb][num_symb >> 2] = num_symb;
+                m_num_symb_by_bit0_in_pos[num_bit_in_symb][cur_num_inbit0_arr] = num_symb;
+                cur_num_inbit0_arr++;
             }
         }
     }  
@@ -217,7 +224,7 @@ void Demodulator::swap(Demodulator& other)
 {
     std::swap(m_M, other.m_M);
     std::swap(m_avg_power, other.m_avg_power);
-    std::swap(m_int_symbols, other.m_int_symbols);
+    std::swap(m_num_qam_by_bits_symbols, other.m_num_qam_by_bits_symbols);
     std::swap(m_qam_symbols, other.m_qam_symbols);
     std::swap(m_num_symb_by_bit0_in_pos, other.m_num_symb_by_bit0_in_pos);
     std::swap(m_num_symb_by_bit1_in_pos, other.m_num_symb_by_bit1_in_pos);

@@ -7,7 +7,7 @@ class Modulator{
 protected:
     uint                                m_M;
     double                              m_avg_power;
-    std::vector<uint>                   m_int_symbols;
+    std::vector<uint>                   m_num_qam_by_bits_symbols; //[bit_symb] -> num in qam_symbols
     std::vector<std::complex<double>>   m_qam_symbols;
 
 
@@ -32,8 +32,8 @@ public:
     std::vector<uint> get_int_symbols();
     std::vector<std::complex<double>> get_qam_symbols();
 
-    void set_castom_constellation_map(const std::vector<uint>& bit_symbols, const std::vector<std::complex<double>>& complex_symbols);
     std::vector<std::complex<double>> modulate(std::vector<uint>);
+    std::vector<std::complex<double>> modulate(std::vector<bool>);
 
 private:
 

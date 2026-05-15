@@ -21,6 +21,11 @@
             "miDebuggerArgs": "-q -nx",
             "setupCommands": [
                 {
+                    "description": "Disable shared library symbols",
+                    "text": "set auto-solib-add off",
+                    "ignoreFailures": true
+                },
+                {
                     "description": "Disable debuginfod",
                     "text": "set debuginfod enabled off",
                     "ignoreFailures": true
