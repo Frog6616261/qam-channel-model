@@ -29,6 +29,7 @@ $$\hat{s} = arg \min_{s_i \in S}|y - s_i|^2$$
 
 #### LLR через сумму экспонент
 Нахождеие оптимального элемента по ML критерию
+
 $$LLR(b_k) = ln \frac{\sum_{s_i \in S_k^0} \exp(-\frac{|y - s_i|^2}{2\sigma^2})}{\sum_{s_i \in S_k^1} \exp(-\frac{|y - s_i|^2}{2\sigma^2})}$$
 
 #### LLR через Max-Log approximation
